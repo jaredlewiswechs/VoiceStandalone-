@@ -1,0 +1,663 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>AskAda - Newton Voice Interface</title>
+<style>
+  :root {
+    --bg: #0a0a0f;
+    --surface: #12121a;
+    --surface2: #1a1a25;
+    --border: #2a2a3a;
+    --text: #e0e0e8;
+    --text-dim: #8888a0;
+    --accent: #6c5ce7;
+    --accent-glow: rgba(108, 92, 231, 0.3);
+    --green: #00cec9;
+    --green-dim: rgba(0, 206, 201, 0.15);
+    --orange: #fdcb6e;
+    --red: #ff6b6b;
+    --font: 'SF Mono', 'Fira Code', 'Cascadia Code', 'JetBrains Mono', monospace;
+  }
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: var(--font);
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+  }
+
+  /* Header */
+  header {
+    border-bottom: 1px solid var(--border);
+    padding: 16px 24px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    background: var(--surface);
+  }
+  .logo {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+  }
+  .logo-icon {
+    width: 36px;
+    height: 36px;
+    background: var(--accent);
+    border-radius: 8px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 18px;
+    font-weight: 700;
+    color: #fff;
+  }
+  .logo-text h1 {
+    font-size: 16px;
+    font-weight: 600;
+    letter-spacing: 0.5px;
+  }
+  .logo-text p {
+    font-size: 11px;
+    color: var(--text-dim);
+    letter-spacing: 0.3px;
+  }
+  .header-status {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 12px;
+    color: var(--green);
+  }
+  .status-dot {
+    width: 8px;
+    height: 8px;
+    background: var(--green);
+    border-radius: 50%;
+    animation: pulse 2s ease-in-out infinite;
+  }
+  @keyframes pulse {
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0.4; }
+  }
+
+  /* Main layout */
+  main {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    max-width: 900px;
+    width: 100%;
+    margin: 0 auto;
+    padding: 24px;
+    gap: 20px;
+  }
+
+  /* Conversation */
+  #conversation {
+    flex: 1;
+    overflow-y: auto;
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+    padding-bottom: 16px;
+  }
+
+  /* Welcome */
+  .welcome {
+    text-align: center;
+    padding: 48px 24px;
+  }
+  .welcome h2 {
+    font-size: 28px;
+    font-weight: 300;
+    margin-bottom: 8px;
+    color: var(--text);
+  }
+  .welcome h2 strong {
+    color: var(--accent);
+    font-weight: 600;
+  }
+  .welcome p {
+    color: var(--text-dim);
+    font-size: 13px;
+    max-width: 500px;
+    margin: 0 auto 32px;
+    line-height: 1.6;
+  }
+  .examples {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+    gap: 10px;
+    max-width: 700px;
+    margin: 0 auto;
+  }
+  .example-btn {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 14px 16px;
+    color: var(--text);
+    font-family: var(--font);
+    font-size: 12px;
+    cursor: pointer;
+    text-align: left;
+    transition: all 0.2s;
+    line-height: 1.4;
+  }
+  .example-btn:hover {
+    border-color: var(--accent);
+    background: var(--surface2);
+    box-shadow: 0 0 20px var(--accent-glow);
+  }
+  .example-btn .label {
+    display: block;
+    font-size: 10px;
+    color: var(--text-dim);
+    margin-bottom: 4px;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+  }
+
+  /* Message bubbles */
+  .msg {
+    max-width: 85%;
+    animation: fadeIn 0.3s ease;
+  }
+  @keyframes fadeIn {
+    from { opacity: 0; transform: translateY(8px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+  .msg-user {
+    align-self: flex-end;
+  }
+  .msg-user .msg-body {
+    background: var(--accent);
+    color: #fff;
+    border-radius: 16px 16px 4px 16px;
+    padding: 12px 16px;
+    font-size: 13px;
+    line-height: 1.5;
+  }
+  .msg-newton {
+    align-self: flex-start;
+  }
+  .msg-newton .msg-body {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 16px 16px 16px 4px;
+    padding: 16px;
+    font-size: 13px;
+    line-height: 1.6;
+  }
+  .msg-newton .msg-header {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin-bottom: 10px;
+    font-size: 11px;
+    color: var(--text-dim);
+  }
+  .msg-newton .msg-header .badge {
+    background: var(--green-dim);
+    color: var(--green);
+    padding: 2px 8px;
+    border-radius: 4px;
+    font-size: 10px;
+    font-weight: 600;
+  }
+  .msg-newton .response-text {
+    margin-bottom: 12px;
+  }
+
+  /* Structured result sections */
+  .result-section {
+    background: var(--bg);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 12px;
+    margin-top: 10px;
+    font-size: 12px;
+  }
+  .result-section summary {
+    cursor: pointer;
+    font-weight: 600;
+    color: var(--text-dim);
+    font-size: 11px;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+  }
+  .result-section pre {
+    margin-top: 8px;
+    white-space: pre-wrap;
+    word-break: break-all;
+    color: var(--text-dim);
+    font-size: 11px;
+    line-height: 1.5;
+  }
+
+  /* Intent & domain tags */
+  .tags {
+    display: flex;
+    gap: 6px;
+    flex-wrap: wrap;
+    margin-top: 8px;
+  }
+  .tag {
+    font-size: 10px;
+    padding: 3px 8px;
+    border-radius: 4px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+  }
+  .tag-intent {
+    background: rgba(108, 92, 231, 0.15);
+    color: var(--accent);
+  }
+  .tag-domain {
+    background: rgba(253, 203, 110, 0.15);
+    color: var(--orange);
+  }
+  .tag-verified {
+    background: var(--green-dim);
+    color: var(--green);
+  }
+  .tag-unverified {
+    background: rgba(255, 107, 107, 0.15);
+    color: var(--red);
+  }
+
+  /* Suggestions */
+  .suggestions {
+    display: flex;
+    gap: 6px;
+    flex-wrap: wrap;
+    margin-top: 12px;
+  }
+  .suggestion-btn {
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    border-radius: 20px;
+    padding: 6px 12px;
+    color: var(--text-dim);
+    font-family: var(--font);
+    font-size: 11px;
+    cursor: pointer;
+    transition: all 0.2s;
+  }
+  .suggestion-btn:hover {
+    border-color: var(--accent);
+    color: var(--text);
+  }
+
+  /* Elapsed time */
+  .elapsed {
+    font-size: 10px;
+    color: var(--text-dim);
+    margin-top: 8px;
+  }
+
+  /* Input area */
+  .input-area {
+    border-top: 1px solid var(--border);
+    padding-top: 16px;
+  }
+  .input-row {
+    display: flex;
+    gap: 10px;
+    align-items: flex-end;
+  }
+  .input-row textarea {
+    flex: 1;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 12px 16px;
+    color: var(--text);
+    font-family: var(--font);
+    font-size: 13px;
+    resize: none;
+    outline: none;
+    min-height: 46px;
+    max-height: 120px;
+    line-height: 1.5;
+    transition: border-color 0.2s;
+  }
+  .input-row textarea:focus {
+    border-color: var(--accent);
+  }
+  .input-row textarea::placeholder {
+    color: var(--text-dim);
+  }
+  .send-btn {
+    background: var(--accent);
+    border: none;
+    border-radius: 12px;
+    width: 46px;
+    height: 46px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    transition: all 0.2s;
+    flex-shrink: 0;
+  }
+  .send-btn:hover { opacity: 0.85; }
+  .send-btn:disabled {
+    opacity: 0.4;
+    cursor: not-allowed;
+  }
+  .send-btn svg {
+    width: 20px;
+    height: 20px;
+    fill: #fff;
+  }
+
+  /* Loading */
+  .loading-dots {
+    display: inline-flex;
+    gap: 4px;
+    padding: 8px 0;
+  }
+  .loading-dots span {
+    width: 6px;
+    height: 6px;
+    background: var(--text-dim);
+    border-radius: 50%;
+    animation: loadBounce 1.2s ease-in-out infinite;
+  }
+  .loading-dots span:nth-child(2) { animation-delay: 0.2s; }
+  .loading-dots span:nth-child(3) { animation-delay: 0.4s; }
+  @keyframes loadBounce {
+    0%, 80%, 100% { transform: scale(0.6); opacity: 0.4; }
+    40% { transform: scale(1); opacity: 1; }
+  }
+
+  /* Scrollbar */
+  ::-webkit-scrollbar { width: 6px; }
+  ::-webkit-scrollbar-track { background: transparent; }
+  ::-webkit-scrollbar-thumb {
+    background: var(--border);
+    border-radius: 3px;
+  }
+
+  /* Mobile */
+  @media (max-width: 600px) {
+    main { padding: 12px; }
+    .welcome h2 { font-size: 22px; }
+    .examples { grid-template-columns: 1fr; }
+    .msg { max-width: 95%; }
+    header { padding: 12px 16px; }
+  }
+</style>
+</head>
+<body>
+
+<header>
+  <div class="logo">
+    <div class="logo-icon">N</div>
+    <div class="logo-text">
+      <h1>AskAda</h1>
+      <p>Newton Voice Interface</p>
+    </div>
+  </div>
+  <div class="header-status">
+    <span class="status-dot"></span>
+    Newton Online
+  </div>
+</header>
+
+<main>
+  <div id="conversation">
+    <div class="welcome" id="welcome">
+      <h2>Speak to <strong>Newton</strong></h2>
+      <p>
+        Mother Of All Demos: Natural language to verified computation.
+        Describe what you want. Newton understands intent, generates constraints,
+        and returns results with cryptographic proofs.
+      </p>
+      <div class="examples">
+        <button class="example-btn" onclick="sendExample(this)">
+          <span class="label">Finance</span>
+          Build a financial calculator that proves its math
+        </button>
+        <button class="example-btn" onclick="sendExample(this)">
+          <span class="label">Education</span>
+          Create a lesson planner for 5th grade math on fractions
+        </button>
+        <button class="example-btn" onclick="sendExample(this)">
+          <span class="label">Inventory</span>
+          Build an inventory tracker with tamper-proof audit trail
+        </button>
+        <button class="example-btn" onclick="sendExample(this)">
+          <span class="label">Safety</span>
+          Add content safety verification to my app
+        </button>
+        <button class="example-btn" onclick="sendExample(this)">
+          <span class="label">Dashboard</span>
+          Create a metrics dashboard with live analytics
+        </button>
+        <button class="example-btn" onclick="sendExample(this)">
+          <span class="label">Quiz</span>
+          Build a verified quiz that proves fair grading
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <div class="input-area">
+    <div class="input-row">
+      <textarea
+        id="input"
+        placeholder="Ask Newton anything... e.g. 'Build me a calculator'"
+        rows="1"
+        onkeydown="handleKey(event)"
+        oninput="autoResize(this)"
+      ></textarea>
+      <button class="send-btn" id="sendBtn" onclick="send()">
+        <svg viewBox="0 0 24 24"><path d="M2.01 21L23 12 2.01 3 2 10l15 2-15 2z"/></svg>
+      </button>
+    </div>
+  </div>
+</main>
+
+<script>
+const conv = document.getElementById('conversation');
+const input = document.getElementById('input');
+const sendBtn = document.getElementById('sendBtn');
+const welcome = document.getElementById('welcome');
+
+let sessionId = null;
+let busy = false;
+
+function autoResize(el) {
+  el.style.height = 'auto';
+  el.style.height = Math.min(el.scrollHeight, 120) + 'px';
+}
+
+function handleKey(e) {
+  if (e.key === 'Enter' && !e.shiftKey) {
+    e.preventDefault();
+    send();
+  }
+}
+
+function sendExample(btn) {
+  const text = btn.textContent.replace(btn.querySelector('.label').textContent, '').trim();
+  input.value = text;
+  send();
+}
+
+function addUserMsg(text) {
+  if (welcome) welcome.style.display = 'none';
+  const div = document.createElement('div');
+  div.className = 'msg msg-user';
+  div.innerHTML = '<div class="msg-body">' + escapeHtml(text) + '</div>';
+  conv.appendChild(div);
+  scrollBottom();
+}
+
+function addLoadingMsg() {
+  const div = document.createElement('div');
+  div.className = 'msg msg-newton';
+  div.id = 'loading-msg';
+  div.innerHTML = '<div class="msg-body"><div class="loading-dots"><span></span><span></span><span></span></div></div>';
+  conv.appendChild(div);
+  scrollBottom();
+}
+
+function removeLoading() {
+  const el = document.getElementById('loading-msg');
+  if (el) el.remove();
+}
+
+function addNewtonMsg(data) {
+  removeLoading();
+  const div = document.createElement('div');
+  div.className = 'msg msg-newton';
+
+  const verified = data.verified;
+  const intent = data.intent || {};
+  const elapsed = data.elapsed_us ? (data.elapsed_us / 1000).toFixed(1) : null;
+
+  let html = '<div class="msg-body">';
+
+  // Header
+  html += '<div class="msg-header">';
+  html += '<span>Newton</span>';
+  if (verified) {
+    html += '<span class="badge">VERIFIED</span>';
+  }
+  html += '</div>';
+
+  // Response text
+  html += '<div class="response-text">' + escapeHtml(data.message || 'Done.') + '</div>';
+
+  // Tags
+  html += '<div class="tags">';
+  if (intent.intent_type) {
+    html += '<span class="tag tag-intent">' + escapeHtml(intent.intent_type) + '</span>';
+  }
+  if (intent.domain) {
+    html += '<span class="tag tag-domain">' + escapeHtml(intent.domain) + '</span>';
+  }
+  html += '<span class="tag ' + (verified ? 'tag-verified' : 'tag-unverified') + '">';
+  html += verified ? 'Verified' : 'Unverified';
+  html += '</span>';
+  html += '</div>';
+
+  // CDL details (collapsible)
+  if (data.cdl) {
+    html += '<details class="result-section"><summary>Constraints (CDL)</summary>';
+    html += '<pre>' + escapeHtml(JSON.stringify(data.cdl.constraints || [], null, 2)) + '</pre>';
+    html += '</details>';
+  }
+
+  // Result details (collapsible)
+  if (data.result) {
+    html += '<details class="result-section"><summary>Result</summary>';
+    html += '<pre>' + escapeHtml(JSON.stringify(data.result, null, 2)) + '</pre>';
+    html += '</details>';
+  }
+
+  // Proof (collapsible)
+  if (data.proof) {
+    html += '<details class="result-section"><summary>Cryptographic Proof</summary>';
+    html += '<pre>' + escapeHtml(JSON.stringify(data.proof, null, 2)) + '</pre>';
+    html += '</details>';
+  }
+
+  // Elapsed
+  if (elapsed) {
+    html += '<div class="elapsed">' + elapsed + 'ms</div>';
+  }
+
+  // Suggestions
+  if (data.suggestions && data.suggestions.length) {
+    html += '<div class="suggestions">';
+    data.suggestions.forEach(function(s) {
+      html += '<button class="suggestion-btn" onclick="useSuggestion(this)">' + escapeHtml(s) + '</button>';
+    });
+    html += '</div>';
+  }
+
+  html += '</div>';
+  div.innerHTML = html;
+  conv.appendChild(div);
+  scrollBottom();
+}
+
+function addErrorMsg(text) {
+  removeLoading();
+  const div = document.createElement('div');
+  div.className = 'msg msg-newton';
+  div.innerHTML = '<div class="msg-body" style="border-color:var(--red)"><div class="msg-header"><span>Newton</span><span class="badge" style="background:rgba(255,107,107,0.15);color:var(--red)">ERROR</span></div><div class="response-text">' + escapeHtml(text) + '</div></div>';
+  conv.appendChild(div);
+  scrollBottom();
+}
+
+function useSuggestion(btn) {
+  input.value = btn.textContent;
+  send();
+}
+
+async function send() {
+  const text = input.value.trim();
+  if (!text || busy) return;
+
+  busy = true;
+  sendBtn.disabled = true;
+  input.value = '';
+  input.style.height = 'auto';
+
+  addUserMsg(text);
+  addLoadingMsg();
+
+  try {
+    const body = { query: text };
+    if (sessionId) body.session_id = sessionId;
+
+    const res = await fetch('/voice/ask', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(body),
+    });
+
+    if (!res.ok) {
+      const err = await res.json().catch(function() { return { detail: res.statusText }; });
+      throw new Error(err.detail || 'Request failed');
+    }
+
+    const data = await res.json();
+    sessionId = data.session_id || sessionId;
+    addNewtonMsg(data);
+  } catch (e) {
+    addErrorMsg(e.message || 'Something went wrong. Please try again.');
+  } finally {
+    busy = false;
+    sendBtn.disabled = false;
+    input.focus();
+  }
+}
+
+function scrollBottom() {
+  conv.scrollTop = conv.scrollHeight;
+}
+
+function escapeHtml(s) {
+  if (!s) return '';
+  var d = document.createElement('div');
+  d.textContent = s;
+  return d.innerHTML;
+}
+
+input.focus();
+</script>
+
+</body>
+</html>
