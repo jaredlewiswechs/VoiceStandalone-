@@ -80,6 +80,10 @@
     border-radius: 50%;
     animation: pulse 2s ease-in-out infinite;
   }
+  .status-dot.offline { background: var(--red); }
+  .status-dot.checking { background: var(--orange); }
+  .header-status.offline { color: var(--red); }
+  .header-status.checking { color: var(--orange); }
   @keyframes pulse {
     0%, 100% { opacity: 1; }
     50% { opacity: 0.4; }
@@ -406,9 +410,9 @@
       <p>Newton Voice Interface</p>
     </div>
   </div>
-  <div class="header-status">
-    <span class="status-dot"></span>
-    Newton Online
+  <div class="header-status" id="headerStatus">
+    <span class="status-dot" id="statusDot"></span>
+    <span id="statusText">Checking backend…</span>
   </div>
 </header>
 
@@ -471,9 +475,50 @@ const conv = document.getElementById('conversation');
 const input = document.getElementById('input');
 const sendBtn = document.getElementById('sendBtn');
 const welcome = document.getElementById('welcome');
+const headerStatus = document.getElementById('headerStatus');
+const statusDot = document.getElementById('statusDot');
+const statusText = document.getElementById('statusText');
 
 let sessionId = null;
 let busy = false;
+
+
+async function checkBackendHealth() {
+  setHeaderStatus('checking', 'Checking backend…');
+  try {
+    const res = await fetch('/health', { cache: 'no-store' });
+    if (!res.ok) throw new Error('Health endpoint returned ' + res.status);
+    setHeaderStatus('online', 'Newton Online');
+  } catch (err) {
+    setHeaderStatus('offline', 'Backend Offline');
+  }
+}
+
+function setHeaderStatus(state, label) {
+  statusText.textContent = label;
+  headerStatus.classList.remove('online', 'offline', 'checking');
+  statusDot.classList.remove('offline', 'checking');
+
+  if (state === 'offline') {
+    headerStatus.classList.add('offline');
+    statusDot.classList.add('offline');
+    return;
+  }
+
+  if (state === 'checking') {
+    headerStatus.classList.add('checking');
+    statusDot.classList.add('checking');
+  }
+}
+
+function formatHttpError(status, payloadText) {
+  const text = (payloadText || '').trim();
+  if (text.includes('FUNCTION_INVOCATION_FAILED') || text.includes('INTERNAL_SERVER_ERROR')) {
+    return 'Server failed to start on Vercel. Run locally with: python -m pip install -r requirements.txt && uvicorn app:app --host 0.0.0.0 --port 8000';
+  }
+  if (!text) return 'Request failed (' + status + ').';
+  return text.length > 200 ? text.slice(0, 200) + '…' : text;
+}
 
 function autoResize(el) {
   el.style.height = 'auto';
@@ -629,8 +674,13 @@ async function send() {
     });
 
     if (!res.ok) {
-      const err = await res.json().catch(function() { return { detail: res.statusText }; });
-      throw new Error(err.detail || 'Request failed');
+      const errText = await res.text().catch(function() { return ''; });
+      let errJson = null;
+      try {
+        errJson = JSON.parse(errText);
+      } catch (_) {}
+      if (errJson && errJson.detail) throw new Error(errJson.detail);
+      throw new Error(formatHttpError(res.status, errText) || 'Request failed');
     }
 
     const data = await res.json();
@@ -641,6 +691,7 @@ async function send() {
   } finally {
     busy = false;
     sendBtn.disabled = false;
+    checkBackendHealth();
     input.focus();
   }
 }
@@ -656,6 +707,7 @@ function escapeHtml(s) {
   return d.innerHTML;
 }
 
+checkBackendHealth();
 input.focus();
 </script>
 
