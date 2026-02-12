@@ -15,8 +15,10 @@ All dependencies are inlined - no external Newton imports required.
 
 from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.responses import HTMLResponse
 from pydantic import BaseModel
 from typing import Optional
+from pathlib import Path
 import time
 
 from core.voice_interface import (
@@ -91,9 +93,16 @@ class PatternSearchRequest(BaseModel):
 # HEALTH & ROOT
 # ═══════════════════════════════════════════════════════════════════════════════
 
-@app.get("/")
+@app.get("/", response_class=HTMLResponse)
 async def root():
-    """Newton Voice Interface - AskAda."""
+    """Newton Voice Interface - AskAda frontend."""
+    html_path = Path(__file__).parent / "frontend" / "index.html"
+    return HTMLResponse(content=html_path.read_text(), status_code=200)
+
+
+@app.get("/api")
+async def api_info():
+    """Newton Voice Interface - API info."""
     return {
         "name": "Newton Voice Interface - AskAda",
         "tagline": "Easy now with Newton. He has so much power. Think speaking to your computer.",
