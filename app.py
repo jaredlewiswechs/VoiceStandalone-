@@ -97,7 +97,20 @@ class PatternSearchRequest(BaseModel):
 async def root():
     """Newton Voice Interface - AskAda frontend."""
     html_path = Path(__file__).parent / "frontend" / "index.html"
-    return HTMLResponse(content=html_path.read_text(), status_code=200)
+    if html_path.exists():
+        return HTMLResponse(content=html_path.read_text(), status_code=200)
+
+    # Vercel's Python bundling can omit non-imported static assets unless they
+    # are explicitly included. Return a graceful fallback instead of crashing.
+    return HTMLResponse(
+        content=(
+            "<html><body><h1>Newton Voice Interface</h1>"
+            "<p>Frontend asset not found in this deployment bundle.</p>"
+            "<p>Open <a href='/docs'>/docs</a> for the API interface.</p>"
+            "</body></html>"
+        ),
+        status_code=200,
+    )
 
 
 @app.get("/api")
